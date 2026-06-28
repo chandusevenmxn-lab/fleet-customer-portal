@@ -1,10 +1,24 @@
 stages:
+  - test
   - build
   - deploy
 
 variables:
   # Use GitLab's built-in container registry
   DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
+# Test stage: Run linting and unit tests
+lint_and_test:
+  stage: test
+  image: node:20-alpine
+  script:
+    - npm install
+    - npm run lint
+    # - npm test # Uncomment this if you have unit tests configured
+  only:
+    - main
+    - master
+    - merge_requests
 
 # Build stage: Build the Docker image and push it to GitLab Registry
 build_image:
@@ -22,7 +36,6 @@ build_image:
     - master
 
 # Deploy stage: Pull the image on your server and run it
-# Note: You need to set up SSH keys in GitLab CI/CD Variables
 deploy_to_server:
   stage: deploy
   image: alpine:latest
@@ -32,7 +45,6 @@ deploy_to_server:
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    # Skip host key checking for simplicity in this example (or add to known_hosts)
     - echo "StrictHostKeyChecking no" >> ~/.ssh/config
   script:
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
