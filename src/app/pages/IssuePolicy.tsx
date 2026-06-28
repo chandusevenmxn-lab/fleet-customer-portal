@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, FlatList, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
 export default function IssuePolicy() {
@@ -59,7 +59,7 @@ export default function IssuePolicy() {
           <View style={styles.successIcon}><Text style={styles.iconText}>✓</Text></View>
           <Text style={styles.resultHeader}>Policy Issued!</Text>
           <Text style={styles.resultSub}>Policy Number: <Text style={styles.bold}>FL-9920-X</Text></Text>
-          <Text style={styles.infoText}>The documents have been sent to the customer's registered email address.</Text>
+          <Text style={styles.infoText}>The documents have been sent to the customer{"'"}s registered email address.</Text>
 
           <TouchableOpacity style={styles.mainButton} onPress={() => router.replace('/home')}>
             <Text style={styles.buttonText}>Go to Dashboard</Text>
