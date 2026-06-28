@@ -30,7 +30,7 @@ export default function Login() {
       >
         <View style={styles.loginCard}>
           <View style={styles.header}>
-            <Text style={styles.title}>Fleet Portal</Text>
+            <Text style={styles.title}>FLEET CUSTOMER PORTAL</Text>
             <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 
