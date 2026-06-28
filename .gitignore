@@ -1,43 +1,40 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+image: docker:24.0.5
 
-# dependencies
-node_modules/
+services:
+  - docker:24.0.5-dind
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+stages:
+  - build
+  - package
+  - deploy
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
 
-# Metro
-.metro-health-check*
+# 1. Package: Build and Push Docker Image to GitLab Registry
+docker-build:
+  stage: package
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-example
-
-# generated native folders
-/ios
-/android
+# 2. Deploy: Apply manifests to Kubernetes
+deploy-k8s:
+  stage: deploy
+  image: line/kubectl:latest
+  script:
+    # Set up KUBECONFIG (This must be added as a CI/CD variable in GitLab)
+    - echo "$KUBECONFIG" > /tmp/config
+    - export KUBECONFIG=/tmp/config
+    # Replace variables in the YAML file
+    - sed -i "s|\${CI_REGISTRY_IMAGE}|$CI_REGISTRY_IMAGE|g" k8s/deployment.yaml
+    - sed -i "s|\${CI_COMMIT_SHORT_SHA}|$CI_COMMIT_SHORT_SHA|g" k8s/deployment.yaml
+    # Apply to Cluster
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl rollout status deployment/fleet-portal
+  only:
+    - main
