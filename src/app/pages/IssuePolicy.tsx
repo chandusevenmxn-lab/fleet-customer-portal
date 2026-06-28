@@ -11,6 +11,7 @@ export default function IssuePolicy() {
 
   // Date Picker State
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerError, setDatePickerError] = useState('');
   const [tempDate, setTempDate] = useState({
     day: new Date().getDate().toString().padStart(2, '0'),
     month: (new Date().getMonth() + 1).toString().padStart(2, '0'),
@@ -26,12 +27,26 @@ export default function IssuePolicy() {
       setErrorMessage(`Warning: Please enter mandatory fields:\n• ${missingFields.join('\n• ')}`);
       return;
     }
+
     setErrorMessage('');
     setShowResult(true);
   };
 
   const confirmDate = () => {
-    setEffectiveDate(`${tempDate.year}-${tempDate.month}-${tempDate.day}`);
+    const dateString = `${tempDate.year}-${tempDate.month}-${tempDate.day}`;
+
+    // Check if effective date is in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(parseInt(tempDate.year), parseInt(tempDate.month) - 1, parseInt(tempDate.day));
+
+    if (selectedDate > today) {
+      setDatePickerError('Warning: Effective Date cannot be in the future.');
+      return;
+    }
+
+    setEffectiveDate(dateString);
+    setDatePickerError('');
     setShowDatePicker(false);
     if (errorMessage) setErrorMessage('');
   };
@@ -109,11 +124,18 @@ export default function IssuePolicy() {
         visible={showDatePicker}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowDatePicker(false)}
+        onRequestClose={() => {
+          setShowDatePicker(false);
+          setDatePickerError('');
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.pickerCard}>
             <Text style={styles.pickerTitle}>Select Effective Date</Text>
+
+            {datePickerError ? (
+              <Text style={styles.modalErrorText}>{datePickerError}</Text>
+            ) : null}
 
             <View style={styles.pickerSelectors}>
               <View style={styles.pickerColumn}>
@@ -307,5 +329,12 @@ const styles = StyleSheet.create({
   modalConfirmText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  modalErrorText: {
+    color: '#d32f2f',
+    fontSize: 13,
+    marginBottom: 15,
+    textAlign: 'center',
+    fontWeight: '600',
   }
 });
