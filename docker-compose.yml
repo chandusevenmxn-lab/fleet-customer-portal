@@ -1,17 +1,17 @@
 version: '3.8'
 
 services:
-  # Frontend App
+  # Frontend App - Pulls from GitLab Registry
   fleet-app:
-    build: .
+    image: ${FRONTEND_IMAGE}
     ports:
       - "80:80"
     depends_on:
       - api
 
-  # Backend API
+  # Backend API - Pulls from GitLab Registry
   api:
-    build: ./server
+    image: ${BACKEND_IMAGE}
     environment:
       - DB_USER=fleet_user
       - DB_PASSWORD=fleet_password
