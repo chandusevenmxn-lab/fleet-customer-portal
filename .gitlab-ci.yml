@@ -4,24 +4,20 @@ stages:
   - deploy
 
 variables:
-  # Use GitLab's built-in container registry
-  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  DOCKER_IMAGE_FRONTEND: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG
+  DOCKER_IMAGE_BACKEND: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG
 
-# Test stage: Run linting and unit tests
 lint_and_test:
   stage: test
   image: node:20-alpine
   script:
     - npm install
     - npm run lint
-    # - npm test # Uncomment this if you have unit tests configured
   only:
     - main
     - master
-    - merge_requests
 
-# Build stage: Build the Docker image and push it to GitLab Registry
-build_image:
+build_images:
   stage: build
   image: docker:24.0.5
   services:
@@ -29,13 +25,14 @@ build_image:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build -t $DOCKER_IMAGE .
-    - docker push $DOCKER_IMAGE
+    - docker build -t $DOCKER_IMAGE_FRONTEND .
+    - docker build -t $DOCKER_IMAGE_BACKEND ./server
+    - docker push $DOCKER_IMAGE_FRONTEND
+    - docker push $DOCKER_IMAGE_BACKEND
   only:
     - main
     - master
 
-# Deploy stage: Pull the image on your server and run it
 deploy_to_server:
   stage: deploy
   image: alpine:latest
@@ -44,17 +41,16 @@ deploy_to_server:
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
     - echo "StrictHostKeyChecking no" >> ~/.ssh/config
   script:
+    # Copy configuration files to the server
+    - scp docker-compose.yml init.sql $DEPLOY_USER@$DEPLOY_HOST:/home/$DEPLOY_USER/
+    # Log in and restart services using Docker Compose
     - ssh $DEPLOY_USER@$DEPLOY_HOST "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
-        docker pull $DOCKER_IMAGE &&
-        docker stop fleet-app || true &&
-        docker rm fleet-app || true &&
-        docker run -d --name fleet-app -p 80:80 $DOCKER_IMAGE"
+        export FRONTEND_IMAGE=$DOCKER_IMAGE_FRONTEND &&
+        export BACKEND_IMAGE=$DOCKER_IMAGE_BACKEND &&
+        docker-compose down || true &&
+        docker-compose up -d"
   only:
     - main
     - master
-  environment:
-    name: production
-    url: http://$DEPLOY_HOST
