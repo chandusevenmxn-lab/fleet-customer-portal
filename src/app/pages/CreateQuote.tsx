@@ -111,7 +111,10 @@ export default function CreateQuote() {
           keyboardType="phone-pad"
           placeholderTextColor="#999"
           value={formData.phone}
-          onChangeText={(text) => setFormData({...formData, phone: text})}
+          onChangeText={(text) => {
+            const numericText = text.replace(/[^0-9]/g, '');
+            setFormData({...formData, phone: numericText});
+          }}
         />
 
         <Text style={styles.label}>Vehicle Information <Text style={styles.required}>*</Text></Text>
